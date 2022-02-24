@@ -11,15 +11,17 @@ enum class EMovementStatus : uint8
 {
 	EMS_Normal UMETA(DisplayName = "Normal"),
 	EMS_Sprinting UMETA(DisplayName = "Sprinting"),
-	EMS_MAX UMETA(DisplayName = "DefaultMax"),
+	EMS_MAX UMETA(DisplayName = "DefaultMax")
 };
 
 UENUM(BlueprintType)
 enum class EStaminaStatus : uint8
 {
 	EMS_Normal UMETA(DisplayName = "Normal"),
-	EMS_BelowMinimum UMETA(DisplayName = "Sprinting"),
-	EMS_MAX UMETA(DisplayName = "DefaultMax"),
+	EMS_BelowMinimum UMETA(DisplayName = "BelowMinimum"),
+	EMS_Exhausted UMETA(DisplayName = "Exhausted"),
+	EMS_ExhaustedRecovering UMETA(DisplayName = "ExhaustedRecovering"),
+	EMS_MAX UMETA(DisplayName = "DefaultMax")
 };
 
 UCLASS()
@@ -33,6 +35,17 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Enums")
 	EMovementStatus MovementStatus;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Enums")
+	EStaminaStatus StaminaStatus;
+
+	FORCEINLINE void SetStaminaStatus(EStaminaStatus Status) { StaminaStatus = Status; }
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	float StaminaDrainRate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	float MinSprintStamina;
 
 	void SetMovementStatus(EMovementStatus Status);
 
