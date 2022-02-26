@@ -45,6 +45,8 @@ AEnemy::AEnemy()
 	EnemyMovementStatus = EEnemyMovementStatus::EMS_Idle;
 
 	DeathDelay = 3.f;
+
+	bHasValidTarget = false;
 }
 
 // Called when the game starts or when spawned
@@ -102,6 +104,7 @@ void AEnemy::AgroSphereOnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 		AMainCharacter* Main = Cast<AMainCharacter>(OtherActor);
 		if (Main)
 		{
+			bHasValidTarget = false;
 			if (Main->CombatTarget == this)
 			{
 				Main->SetCombatTarget(nullptr);
@@ -128,6 +131,7 @@ void AEnemy::CombatSphereOnOverlapBegin(UPrimitiveComponent* OverlappedComponent
 		AMainCharacter* Main = Cast<AMainCharacter>(OtherActor);
 		if (Main)
 		{
+			bHasValidTarget = true;
 			Main->SetCombatTarget(this);
 			Main->SetHasCombatTarget(true);
 			if (Main->MainPlayerController)
@@ -225,7 +229,7 @@ void AEnemy::DeactivateCollision()
 
 void AEnemy::Attack()
 {
-	if (Alive())
+	if (Alive() && bHasValidTarget)
 	{
 		if (AIController)
 		{
@@ -258,13 +262,16 @@ void AEnemy::AttackEnd()
 
 float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
-	Health -= DamageAmount;
-
-	if (Health <= 0.f)
+	if (Health - DamageAmount <= 0)
 	{
+		Health -= DamageAmount;
 		Die();
 	}
-
+	else
+	{
+		Health -= DamageAmount;
+	}
+	
 	return DamageAmount;
 }
 

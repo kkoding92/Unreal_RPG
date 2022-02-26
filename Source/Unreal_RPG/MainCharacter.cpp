@@ -92,6 +92,8 @@ void AMainCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (MovementStatus == EMovementStatus::EMS_Dead) return;
+
 	float DeltaStamina = StaminaDrainRate * DeltaTime;
 	switch (StaminaStatus)
 	{
@@ -212,7 +214,7 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AMainCharacter::Jump);
-	PlayerInputComponent->BindAction("Jump", IE_Released, this, &AMainCharacter::StopJumping);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
 	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &AMainCharacter::ShiftKeyDown);
 	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &AMainCharacter::ShiftKeyUp);
@@ -231,7 +233,7 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 void AMainCharacter::MoveForward(float Value)
 {
-	if (Controller != nullptr && Value != 0.0f && !bAttacking)
+	if (Controller != nullptr && Value != 0.0f && !bAttacking && MovementStatus != EMovementStatus::EMS_Dead)
 	{
 		// find out which way is forward
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -244,7 +246,7 @@ void AMainCharacter::MoveForward(float Value)
 
 void AMainCharacter::MoveRight(float Value)
 {
-	if (Controller != nullptr && Value != 0.0f && !bAttacking)
+	if (Controller != nullptr && Value != 0.0f && !bAttacking && MovementStatus != EMovementStatus::EMS_Dead)
 	{
 		// find out which way is forward
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -268,6 +270,8 @@ void AMainCharacter::LookUpAtRate(float Rate)
 void AMainCharacter::LMBDown()
 {
 	bLMBDown = true;
+
+	if (MovementStatus == EMovementStatus::EMS_Dead) return;
 
 	if (ActiveOverlappingItem)
 	{
@@ -293,13 +297,7 @@ void AMainCharacter::LMBUp()
 
 void AMainCharacter::DecrementHealth(float Amount)
 {
-	Health -= Amount;
 
-	if (Health <= 0)
-	{
-		Health = 0;
-		Die();
-	}
 }
 
 void AMainCharacter::IncrementCoint(int32 Amount)
@@ -309,6 +307,8 @@ void AMainCharacter::IncrementCoint(int32 Amount)
 
 void AMainCharacter::Die()
 {
+	if (MovementStatus == EMovementStatus::EMS_Dead) return; 
+
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && CombatMontage)
 	{
@@ -317,6 +317,13 @@ void AMainCharacter::Die()
 		AnimInstance->Montage_Play(CombatMontage, 1.0f);
 		AnimInstance->Montage_JumpToSection(FName("Death"));
 	}
+	SetMovementStatus(EMovementStatus::EMS_Dead);
+}
+
+void AMainCharacter::DeathEnd()
+{
+	GetMesh()->bPauseAnims = true;
+	GetMesh()->bNoSkeletonUpdate = true;
 }
 
 void AMainCharacter::SetMovementStatus(EMovementStatus Status)
@@ -354,7 +361,7 @@ void AMainCharacter::SetEquippedWeapon(AWeapon* WeaponToSet)
 
 void AMainCharacter::Attack()
 {
-	if (!bAttacking)
+	if (!bAttacking && MovementStatus != EMovementStatus::EMS_Dead)
 	{
 		bAttacking = true;
 		SetInterpToEnemy(true);
@@ -401,7 +408,32 @@ void AMainCharacter::SetInterpToEnemy(bool Interp)
 
 float AMainCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
-	DecrementHealth(DamageAmount);
+	if (Health - DamageAmount <= 0)
+	{
+		Health -= DamageAmount;
+		Die();
+
+		if (DamageCauser)
+		{
+			AEnemy* Enemy = Cast<AEnemy>(DamageCauser);
+			if (Enemy)
+			{
+				Enemy->bHasValidTarget = false;
+			}
+		}
+	}
+	else
+	{
+		Health -= DamageAmount;
+	}
 
 	return DamageAmount;
+}
+
+void AMainCharacter::Jump()
+{
+	if (MovementStatus != EMovementStatus::EMS_Dead)
+	{
+		Super::Jump();
+	}
 }
