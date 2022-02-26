@@ -296,7 +296,14 @@ void AMainCharacter::IncrementCoint(int32 Amount)
 
 void AMainCharacter::Die()
 {
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && CombatMontage)
+	{
+		int32 Section = FMath::RandRange(0, 1);
 
+		AnimInstance->Montage_Play(CombatMontage, 1.0f);
+		AnimInstance->Montage_JumpToSection(FName("Death"));
+	}
 }
 
 void AMainCharacter::SetMovementStatus(EMovementStatus Status)
@@ -377,4 +384,11 @@ void AMainCharacter::PlaySwingSound()
 void AMainCharacter::SetInterpToEnemy(bool Interp)
 {
 	bInterpToEnemy = Interp;
+}
+
+float AMainCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
+{
+	DecrementHealth(DamageAmount);
+
+	return DamageAmount;
 }
