@@ -321,7 +321,15 @@ void AMainCharacter::LMBUp()
 
 void AMainCharacter::DecrementHealth(float Amount)
 {
-
+	if (Health - Amount <= 0)
+	{
+		Health -= Amount;
+		Die();
+	}
+	else
+	{
+		Health -= Amount;
+	}
 }
 
 void AMainCharacter::IncrementCoint(int32 Amount)
